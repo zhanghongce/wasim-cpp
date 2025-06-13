@@ -87,4 +87,11 @@ class Prover
   smt::Term invar_; ///< populated with an invariant if the engine supports it
 
 };
+
+std::shared_ptr<Prover> make_prover(Engine e, 
+            const smt::Term & p, const TransitionSystem & ts,
+            const smt::SmtSolver & s,
+            const smt::TermVec & assumptions,
+            const PonoOptions & opt);
+
 }  // namespace pono

@@ -138,6 +138,7 @@ set(SOURCES
     "${PROJECT_SOURCE_DIR}/modelchecking/model.cpp"
     "${PROJECT_SOURCE_DIR}/modelchecking/predgen.cpp"
     "${PROJECT_SOURCE_DIR}/modelchecking/prover.cpp"
+    "${PROJECT_SOURCE_DIR}/modelchecking/make_prover.cpp"
     "${PROJECT_SOURCE_DIR}/modelchecking/proverresult.cpp"
     "${PROJECT_SOURCE_DIR}/modelchecking/support.cpp"
     "${PROJECT_SOURCE_DIR}/utils/logger.cpp"
