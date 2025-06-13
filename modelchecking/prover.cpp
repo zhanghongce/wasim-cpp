@@ -36,6 +36,7 @@ Prover::Prover(const smt::Term & p,
       property_(p),
       assumptions_(assumptions),
       ts_(ts),
+      unroller_(ts_),
       bad_(solver_->make_term(
           smt::PrimOp::Not, p)),
       options_(opt)

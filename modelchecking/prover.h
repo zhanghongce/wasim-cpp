@@ -18,6 +18,7 @@
 
 #include "modelchecking/proverresult.h"
 #include "modelchecking/options.h"
+#include "modelchecking/unroller.h"
 #include "framework/ts.h"
 #include "smt-switch/smt.h"
 
@@ -46,7 +47,7 @@ class Prover
    *  last step that completed without finding a bug
    *  but some algorithms such as IC3 might need to follow the trace
    */
-  virtual size_t witness_length() const { return 0; }
+  virtual size_t witness_length() const;
 
   /** Gives a term representing an inductive invariant over current state
    * variables. Only valid if the property has been proven true. Only supported
@@ -70,6 +71,8 @@ class Prover
   smt::Term property_; ///< original property before copied to new solver
   smt::TermVec assumptions_;
   const TransitionSystem & ts_;
+
+  Unroller unroller_;
 
   int reached_k_;  ///< the last bound reached with no counterexamples
 
