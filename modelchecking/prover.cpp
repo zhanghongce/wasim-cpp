@@ -50,8 +50,8 @@ void Prover::initialize()
   if (initialized_)
     return;
   reached_k_ = -1;
-  if (!ts_.only_curr(bad_))
-    throw SimulatorException("Property should not contain inputs or next state variables");
+  if (!ts_.no_next(bad_)) // For IC3ng, no next probably is fine I think...
+    throw SimulatorException("Property should not contain next state/input variables");
   initialized_ = true;
 }
 

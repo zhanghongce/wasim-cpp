@@ -42,9 +42,9 @@ IC3ng::~IC3ng() { }
 
 void IC3ng::check_ts() {
   // check if there are arrays or uninterpreted sorts and fail if so
-  if (!ts_.is_functional())
-    throw SimulatorException(
-      "IC3ng only supports functional transition systems.");
+  // if (!ts_.is_functional())
+  //   throw SimulatorException(
+  //     "IC3ng only supports functional transition systems.");
     // check if there are arrays or uninterpreted sorts and fail if so
   for (const auto & vec : { ts_.statevars(), ts_.inputvars() }) {
     for (const auto & st : vec) {
@@ -75,9 +75,10 @@ void IC3ng::initialize() {
     return;
   }
 
-  if(!options_.promote_inputvars_) {
-    throw SimulatorException("IC3ng must be used together with --promote-inputvars");
-  }
+  // this check is not needed, in wasim, all input has its next state
+  // if(!options_.promote_inputvars_) {
+  //   throw SimulatorException("IC3ng must be used together with --promote-inputvars");
+  // }
 
   // solver_ = smt::create_printing_solver(solver_, &debug_fout, smt::PrintingStyleEnum::DEFAULT_STYLE);
 

@@ -7,6 +7,7 @@
 #include "config/testpath.h"
 #include "frontend/btor2_encoder.h"
 #include "apps/pipe_bwd/conds.h"
+#include "modelchecking/prover.h"
 
 
 using namespace wasim;
@@ -168,6 +169,17 @@ int main() {
 
   auto IfIdState = IdExState.backward({Eq(Sv("id_go"),1), Eq(Sv("rst"), 0)});
   IfIdState.print();
+
+  auto rel_to_prove = IfIdState.conds.at(0);
+  auto decode_condition = IfIdState.conds.at(1);
+  auto prop_to_check = Imply(decode_condition, rel_to_prove);
+
+  auto prover = make_prover(Engine::IC3NG_BITS, prop_to_check, sts, solver, {}, PonoOptions());
+  auto mc_result = prover->prove();
+
+  std::cout << "D |-> C is " << mc_result << std::endl;
+
+
   // This will print 2 conditions
   //   This first one is: D:= (= #b01 ((_ extract 7 6) inst)) 
   //   This is the decode condition

@@ -9,6 +9,10 @@
 
 namespace wasim {
 
+smt::Term _Impl(const smt::Term & l, const smt::Term & r, smt::SmtSolver & s) {
+  return s->make_term(smt::Implies, l, r);
+}
+
 smt::Term _Eq(const smt::Term & l, int r, smt::SmtSolver & s) {
   const auto & sort = l->get_sort();
   auto rterm = s->make_term(r, sort);
@@ -67,6 +71,7 @@ smt::Term _Read(const smt::TermVec & vec, const smt::Term & idx, smt::SmtSolver 
   return e;
 }
 
+#define Imply(l,r) (_Impl((l),(r),(solver)))
 #define Eq(l, r)   (_Eq((l),(r),(solver)))
 #define Add(l, r)  (_Add((l), (r), (solver)))
 #define Read(l, r) (_Read((l), (r), (solver)))
