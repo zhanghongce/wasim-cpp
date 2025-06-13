@@ -1,8 +1,8 @@
 #pragma once
 
-#include "model.h"
+#include "modelchecking/model.h"
 
-namespace pono
+namespace wasim
 {
 
   class ModelLemmaManager;
@@ -39,10 +39,12 @@ namespace pono
   class Lemma {
     public:
     
-    Lemma(const smt::Term & expr, Model * cex, LCexOrigin origin) : expr_(expr), 
+    Lemma(const smt::Term & expr, smt::TermVec && cube, Model * cex, LCexOrigin origin) : 
+      expr_(expr), cube_(std::move(cube)), 
       cex_(cex),  origin_(origin) { }
     
     inline smt::Term  expr() const { return expr_; }
+    inline const smt::TermVec & cube() const { return cube_; }
     inline Model *  cex() const { return cex_; }
     inline std::string to_string() const { return expr()->to_string(); }
     inline LCexOrigin origin() const { return origin_; }
@@ -54,13 +56,21 @@ namespace pono
 
     // bool subsume_by_frame(unsigned fidx, LemmaPDRInterface & pdr);
 
-    static std::string origin_to_string(LCexOrigin o) ;
-    std::string dump_expr() const;
-    std::string dump_cex() const;
+    // static std::string origin_to_string(LCexOrigin o) ;
+    // std::string dump_expr() const;
+    // std::string dump_cex() const;
 
     protected:
     // the expression : for btor
+    // the expr should be not(Conj(var==val)) for var,val in cube
     smt::Term expr_;
+
+    // cube_ is just a vector of var==val
+    smt::TermVec cube_;
+
+    // a map: term->term, var == val
+    // cube_t cube_;
+
     // the cex it blocks
     Model*  cex_;
     // status tracking
@@ -82,19 +92,24 @@ public:
   virtual smt::SmtSolver & solver() = 0;
 
 protected:
+  // [deprecated]
   // Model * new_model();
-  void register_new_model(Model *);
-  Model * new_model(const std::unordered_map <smt::Term,std::vector<std::pair<int,int>>> & varset);
+  // void register_new_model(Model *);
+  // by default, move in
+  Model * new_model(smt::UnorderedTermSet && slicedvarset, 
+                    smt::UnorderedTermSet && unslicedvarset,
+                    smt::TermVec && eqs);
   // Model * new_model_replace_var(
   //   const std::unordered_map <smt::Term,std::vector<std::pair<int,int>>> & varset,
   //   const std::unordered_map<smt::Term, smt::Term> & varmap );
 
   Lemma * new_lemma(
-    const smt::Term & expr, Model * cex, LCexOrigin origin);
+    const smt::Term & expr, Model * cex, LCexOrigin origin, smt::TermVec && cube = {});
     
   std::vector<Lemma *> lemma_allocation_pool;
   std::vector<Model *> cube_allocation_pool;
-  std::unordered_map<std::string, PerVarInfo *> cube_var_info_allocation_pool;
+  std::unordered_map<std::string, PerSlicedVarInfo *> cube_slicedvar_info_allocation_pool;
+  std::unordered_map<std::string, PerUnslicedVarInfo *> cube_unslicevar_info_allocation_pool;
 };
 
-} // namespace pono
+} // namespace wasim

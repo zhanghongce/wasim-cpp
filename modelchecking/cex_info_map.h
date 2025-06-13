@@ -14,6 +14,7 @@
 // first try: control bit + predicates, if insufficient, add data bits
 // struct PerCexInfo{
 // };
+namespace wasim {
 
 struct PerCexInfo {
   smt::TermVec preds_to_use;
@@ -21,18 +22,35 @@ struct PerCexInfo {
   PerCexInfo(smt::TermVec && pred) : preds_to_use(pred) {}
 };
 
-struct PerVarInfo {
-  std::unordered_set<smt::Term> vars_noslice_in_cex;
-  std::string vars_noslice_canonical_string;
+struct PerUnslicedVarInfo {
+  std::unordered_set<smt::Term> vars_in_cex;
+  std::string vars_canonical_string;
+
+  PerUnslicedVarInfo(std::unordered_set<smt::Term> && vars, const std::string & hashstring) :
+    vars_in_cex(std::move(vars)), vars_canonical_string(hashstring) {   }
+};
+
+struct PerSlicedVarInfo {
+  std::unordered_set<smt::Term> slicedvars_in_cex;
+  std::string vars_canonical_string;
+  PerUnslicedVarInfo * unsliced_varinfo;
+
   unsigned ref_count; // we want to know, if the CTIs are often about a certain vars or not
+                      // this is not used for memory management
+                      // because once a cex is generated, it will not be deleted anyway
 
   bool related_info_populated;
   smt::Term related_trans;
   smt::TermVec preds_w_subset_vars;
   smt::TermVec preds_w_related_vars;
 
-  PerVarInfo(std::unordered_set<smt::Term> && vars, std::string && hashstring):
-    vars_noslice_in_cex(vars), vars_noslice_canonical_string(hashstring), ref_count(0), related_info_populated(false)
+  PerSlicedVarInfo(std::unordered_set<smt::Term> && vars, const std::string & hashstring,
+    PerUnslicedVarInfo * unsliced_varptr
+  ):
+    slicedvars_in_cex(std::move(vars)), vars_canonical_string(hashstring), 
+    unsliced_varinfo(unsliced_varptr),
+    ref_count(0), related_info_populated(false)
    {}
 };
 
+} // end of namespace wasim

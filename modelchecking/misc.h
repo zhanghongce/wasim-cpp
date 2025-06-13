@@ -2,7 +2,7 @@
 
 #include "smt-switch/smt.h"
 
-namespace pono {
+namespace wasim {
 // some useful utilities
 
   smt::Term bool_to_bv(const smt::Term & t, smt::SmtSolver & solver_);

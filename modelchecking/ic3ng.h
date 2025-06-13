@@ -31,15 +31,28 @@
 #include <queue>
 #include <fstream>
 
-#include "engines/prover.h"
+#include "modelchecking/prover.h"
 #include "smt-switch/utils.h"
-#include "ic3ng-support/lemma.h"
-#include "ic3ng-support/priority_queue.h"
-#include "utils/partial_model.h"
+#include "modelchecking/lemma.h"
+#include "modelchecking/priority_queue.h"
+#include "modelchecking/options.h"
 
 
-namespace pono
+namespace wasim
 {
+
+
+  // will be used in replacement of unsatcore reducer
+  void reduce_unsat_core_to_fixedpoint(const smt::Term & formula, smt::UnorderedTermSet & core_inout, const smt::SmtSolver & solver_);
+  void reduce_unsat_core_linear(const smt::Term & formula, smt::TermList & assumption_list, const smt::SmtSolver & solver_);
+
+  // return true, if succeed
+  // return false, if it is not unsat
+  bool reduce_unsat_core_to_fixedpoint(const smt::Term & formula, smt::TermList & core_inout, const smt::SmtSolver & solver_);
+  // The rev version assumes that assumption_list are ordered as following:
+  // [keep...remove]  (those we want to keep are put the first)
+  void reduce_unsat_core_linear_rev(const smt::Term & formula, smt::TermList & assumption_list, const smt::SmtSolver & solver_);
+
   class IC3ng : public Prover, public ModelLemmaManager {
     // type definition
     typedef std::vector<Lemma *> frame_t;
@@ -47,8 +60,9 @@ namespace pono
     typedef std::vector<Model *> facts_t;
 
   public:
-    IC3ng(const Property & p, const TransitionSystem & ts,
+    IC3ng(const smt::Term & p, const TransitionSystem & ts,
             const smt::SmtSolver & s,
+            const smt::TermVec & assumptions,
             PonoOptions opt = PonoOptions());
     virtual void initialize() override;
     virtual ProverResult check_until(int k) override;
@@ -62,18 +76,22 @@ namespace pono
     smt::SmtSolver & solver() override { return solver_; }
     std::string print_frame_stat() const ;
     void print_time_stat(std::ostream & os) const;
-
-    void virtual set_helper_term_predicates(const smt::TermVec & ) override;
-    void virtual set_helper_term_clauses(const smt::TermList & clauses);
+    
+    // set up helper predicates 
+    // void virtual set_helper_term_predicates(const smt::TermVec & ) override;
+    // give the clauses that will appear in F1
+    // will run the check: init -> c    and   init /\ T -> c'
+    // void virtual set_helper_term_clauses(const smt::TermVec & clauses) override;
+    
     void dump_invariants(std::ostream & os) const;
 
   protected:
     std::ofstream debug_fout;
     bool has_assumptions;
     // this is used to cut input
-    void cut_vars_curr(std::unordered_map<smt::Term,std::vector<std::pair<int,int>>> & v, bool cut_curr_input);
+    // void cut_vars_curr(std::unordered_map<smt::Term,std::vector<std::pair<int,int>>> & v, bool cut_curr_input);
 
-    PartialModelGen partial_model_getter;
+    // PartialModelGen partial_model_getter;
 
     // will only keep those not pushed yet
     std::vector<frame_t> frames;
@@ -85,8 +103,12 @@ namespace pono
     smt::TermVec frame_labels_;  ///< labels to activate frames
     // useful terms
     smt::Term solver_true_;
+    smt::Term solver_false_;
+    smt::Term solver_1_1;
+    smt::Term solver_0_1;
 
     smt::Sort boolsort_;
+    smt::Sort bv1_sort_;
 
     virtual void check_ts();
     smt::Term get_trans_for_vars(const smt::UnorderedTermSet & vars);
@@ -99,7 +121,7 @@ namespace pono
     smt::UnorderedTermSet no_next_vars_nxt_; //  the next state of inputs
     
     smt::TermVec constraints_curr_var_;
-    std::vector<smt::UnorderedTermSet>  vars_in_constraints_;
+    smt::UnorderedTermSet  vars_in_constraints_; // pre-computed by initialize
     smt::Term all_constraints_; // all constraints
     smt::Term init_prime_;
     smt::UnorderedTermMap nxt_state_updates_; // a map from prime var -> next
@@ -117,6 +139,8 @@ namespace pono
     void add_lemma_to_frame(Lemma * lemma, unsigned fidx);
 
     // will also cancel out other frame labels
+    void disable_all_labels();
+    void assert_init();
     void assert_frame(unsigned fidx);
     bool frame_implies(unsigned fidx, const smt::Term & expr);
 
@@ -131,10 +155,25 @@ namespace pono
 
     bool push_lemma_to_new_frame(); // will use lowest_frame_touched_ to start from
     void validate_inv();
-    void inductive_generalization(unsigned fidx, Model *cex, LCexOrigin origin);
-
+    // void inductive_generalization(unsigned fidx, Model *cex, LCexOrigin origin); // disable the old one
     void reduce_unsat_core_linear_backwards(const smt::Term & F_and_T,
       smt::TermList &conjs, smt::TermList & conjs_nxt);
+
+
+    // another version of it, let's see how it works?
+    bool ic3_down(smt::TermList & conjs_list, smt::TermList & conjs_next, 
+      const smt::Term & Trans, unsigned fidx,
+      std::unordered_map<smt::Term, size_t> & conjnxt_to_idx_map, smt::TermVec all_conjs_curr);
+    void inductive_generalization_mic(unsigned fidx, Model *cex, LCexOrigin origin);
+    
+    void SortCube(std::vector<std::pair<smt::Term, smt::Term>> & inout, bool descending);
+    // reduce predecessor by unsat core reduction
+    void get_min_pred(
+      const smt::Term &bad_next, /* bad (over current version of variables) */
+      unsigned prevFidx, // fidx
+      smt::UnorderedTermSet & slicedvars,
+      smt::UnorderedTermSet & noslicevars,
+      smt::TermVec & eqs);
 
     // \neg C /\ F /\ C
     //           F /\ p
@@ -144,8 +183,9 @@ namespace pono
       bool get_pre_state );
     
     // return value: the predicates added
-    unsigned extend_predicates(Model *cex, smt::TermVec & conj_inout);
-    smt::TermVec loaded_predicates_;
+    // unsigned extend_predicates(Model *cex, smt::TermVec & conj_inout);
+    // void sort_pred_in_extend_predicates(smt::TermVec &);
+    // smt::TermVec loaded_predicates_;
     std::unordered_map<Model *, PerCexInfo> model_info_map_;
 
     // Store side-loaded clauses for first frame
@@ -190,7 +230,44 @@ namespace pono
       return term;
     }
 
+    smt::Term bv_to_bool(const smt::Term & t) {
+      smt::Sort sort = t->get_sort();
+      if (sort->get_sort_kind() == smt::BV) {
+        if (sort->get_width() != 1) {
+          throw SimulatorException("Can't convert non-width 1 bitvector to bool.");
+        }
+        return solver_->make_term(
+          smt::Equal, t, solver_->make_term(1, solver_->make_sort(smt::BV, 1)));
+      } else {
+        return t;
+      }
+    }
+
+    // a simple helper function
+    bool extract_neg_from_val(const smt::Term & t) const { return extract_bit_from_val(t) == false; }
+    bool extract_bit_from_val(const smt::Term & val) const {
+      if (val == solver_true_)
+        return true;
+      if (val == solver_false_)
+        return false;
+      if (val == solver_0_1)
+        return false;
+      if (val == solver_1_1)
+        return true;
+      if (val->get_op().prim_op == smt::Extract) {
+        auto slice = val->get_op().idx0;
+        assert(slice == val->get_op().idx1);
+        auto internal_val = *(val->begin());
+        assert(internal_val->is_value());
+        auto strval = internal_val->to_string();
+        auto ch = strval.at(strval.length()-1-slice);
+        assert(ch == '0' || ch == '1');
+        return (ch == '0');
+      }
+      assert(false); // not handled
+    }
+
   }; // end of class IC3ng
 
-} // namespace pono
+} // namespace wasim
 

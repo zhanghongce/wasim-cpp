@@ -25,17 +25,20 @@
 using namespace smt;
 using namespace std;
 
-namespace pono {
+namespace wasim {
 
-Prover::Prover(const smt::Term & p,
-               const TransitionSystem & ts,
-               const smt::SmtSolver & s)
+Prover::Prover(const smt::Term & p,  
+         const smt::TermVec & assumptions,
+         const TransitionSystem & ts,
+         const smt::SmtSolver & s, PonoOptions opt)
     : initialized_(false),
       solver_(s),
       property_(p),
+      assumptions_(assumptions),
       ts_(ts),
       bad_(solver_->make_term(
-          smt::PrimOp::Not, p))
+          smt::PrimOp::Not, p)),
+      options_(opt)
 {
 }
 
@@ -47,7 +50,7 @@ void Prover::initialize()
     return;
   reached_k_ = -1;
   if (!ts_.only_curr(bad_))
-    throw PonoException("Property should not contain inputs or next state variables");
+    throw SimulatorException("Property should not contain inputs or next state variables");
   initialized_ = true;
 }
 
@@ -63,7 +66,7 @@ Term Prover::invar()
 {
   if (!invar_)
   {
-    throw WasimException("Failed to return invar. Be sure that the property was proven "
+    throw SimulatorException("Failed to return invar. Be sure that the property was proven "
                         "by an engine the supports returning invariants.");
   }
   return invar_;

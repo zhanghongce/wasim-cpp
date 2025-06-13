@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include "modelchecking/proverresult.h"
+#include "modelchecking/options.h"
 #include "framework/ts.h"
 #include "smt-switch/smt.h"
 
@@ -24,8 +26,9 @@ namespace wasim {
 class Prover
 {
  public:
-  Prover(const smt::Term & p, const TransitionSystem & ts,
-         const smt::SmtSolver & s);
+  Prover(const smt::Term & p,  const smt::TermVec & assumptions,
+         const TransitionSystem & ts,
+         const smt::SmtSolver & s, PonoOptions opt);
 
   virtual ~Prover();
 
@@ -65,12 +68,15 @@ class Prover
   smt::SmtSolver solver_;
 
   smt::Term property_; ///< original property before copied to new solver
-  TransitionSystem & ts_;
+  smt::TermVec assumptions_;
+  const TransitionSystem & ts_;
 
   int reached_k_;  ///< the last bound reached with no counterexamples
 
   smt::Term bad_;
 
+  PonoOptions options_;
+  
   // NOTE: both witness_ and invar_ use terms from the engine's solver
 
   std::vector<smt::UnorderedTermMap> witness_; ///< populated by a witness if a CEX is found

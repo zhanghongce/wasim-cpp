@@ -1,8 +1,8 @@
 #include "utils/logger.h"
-#include "engines/ic3ng.h"
-#include "engines/ic3ng-support/debug.h"
+#include "modelchecking/ic3ng.h"
+#include "modelchecking/debug.h"
 
-namespace pono {
+namespace wasim {
 
 // can_sat is used to ensure SAT[init] and SAT[init/\T]
 bool IC3ng::can_sat(const smt::Term & t) {
@@ -13,31 +13,31 @@ bool IC3ng::can_sat(const smt::Term & t) {
   return res.is_sat();
 }
 
-void IC3ng::cut_vars_curr(std::unordered_map<smt::Term,std::vector<std::pair<int,int>>> & v, bool cut_curr_input) {
-  auto pos = v.begin();
-  if (!cut_curr_input) { // then we only cut next input
-    while(pos != v.end()) {
-      // if has assumption
-      // will not remove input var
-      if(!ts_.is_curr_var(pos->first)) {
-        // assert it must be an input var
-        assert(no_next_vars_nxt_.find(pos->first) != no_next_vars_nxt_.end());
-        pos = v.erase(pos);
-      } else
-        ++pos;
-    }
-  } else { // if no assumption, will not keep input, erase everything but current var
-    while(pos != v.end()) {
-      if (actual_statevars_.find(pos->first) == actual_statevars_.end()) {
-        // if it is not a state variable, then remove
-        assert(no_next_vars_.find(pos->first) != no_next_vars_.end() ||
-               no_next_vars_nxt_.find(pos->first) != no_next_vars_nxt_.end());
-        pos = v.erase(pos);
-      } else
-        ++pos;
-    }
-  } // else : no assumption
-} // end of cut_vars_curr
+// void IC3ng::cut_vars_curr(std::unordered_map<smt::Term,std::vector<std::pair<int,int>>> & v, bool cut_curr_input) {
+//   auto pos = v.begin();
+//   if (!cut_curr_input) { // then we only cut next input
+//     while(pos != v.end()) {
+//       // if has assumption
+//       // will not remove input var
+//       if(!ts_.is_curr_var(pos->first)) {
+//         // assert it must be an input var
+//         assert(no_next_vars_nxt_.find(pos->first) != no_next_vars_nxt_.end());
+//         pos = v.erase(pos);
+//       } else
+//         ++pos;
+//     }
+//   } else { // if no assumption, will not keep input, erase everything but current var
+//     while(pos != v.end()) {
+//       if (actual_statevars_.find(pos->first) == actual_statevars_.end()) {
+//         // if it is not a state variable, then remove
+//         assert(no_next_vars_.find(pos->first) != no_next_vars_.end() ||
+//                no_next_vars_nxt_.find(pos->first) != no_next_vars_nxt_.end());
+//         pos = v.erase(pos);
+//       } else
+//         ++pos;
+//     }
+//   } // else : no assumption
+// } // end of cut_vars_curr
 
 
 
@@ -159,7 +159,7 @@ void IC3ng::validate_inv() {
   auto res = solver_->check_sat();
   solver_->pop();
   if (!res.is_unsat())
-    throw PonoException("Unsound inductive invariant. Implementation Error!");
+    throw SimulatorException("Unsound inductive invariant. Implementation Error!");
   
   solver_->push();
   solver_->assert_formula(invar_);
@@ -168,7 +168,7 @@ void IC3ng::validate_inv() {
   res = solver_->check_sat();
   solver_->pop();
   if (!res.is_unsat())
-    throw PonoException("Unsound inductive invariant. Implementation Error!");
+    throw SimulatorException("Unsound inductive invariant. Implementation Error!");
 
   solver_->push();
   solver_->assert_formula(invar_);
@@ -177,7 +177,7 @@ void IC3ng::validate_inv() {
   res = solver_->check_sat();
   solver_->pop();
   if (!res.is_unsat())
-    throw PonoException("Unsound inductive invariant. Implementation Error!");
+    throw SimulatorException("Unsound inductive invariant. Implementation Error!");
 } // end of validate_inv
 
 
@@ -199,11 +199,21 @@ void IC3ng::sanity_check_cex_is_correct(fcex_t * cex_at_cycle_0) {
     solver_->assert_formula(unroller_.at_time(cexs[t]->to_expr(solver_), t));
     auto res = solver_->check_sat();
     if (!res.is_sat())
-      throw PonoException("Unsound counterexample. IMPLEMENTATION ERROR!");
+      throw SimulatorException("Unsound counterexample. IMPLEMENTATION ERROR!");
   }
   solver_->pop();
 } // end of sanity_check_cex_is_correct
 
+void IC3ng::disable_all_labels() {
+  for (unsigned idx = 0; idx < frame_labels_.size(); ++idx)
+    solver_->assert_formula(smart_not(frame_labels_.at(idx)));
+}
+
+void IC3ng::assert_init() {
+  solver_->assert_formula(init_label_);
+  for (unsigned idx = 1; idx < frame_labels_.size(); ++idx)
+    solver_->assert_formula(smart_not(frame_labels_.at(idx)));
+}
 
 void IC3ng::assert_frame(unsigned fidx) {
   assert(fidx < frame_labels_.size());
@@ -263,4 +273,4 @@ std::string IC3ng::print_frame_stat() const {
   return output;
 }
 
-} // end of namespace pono
+} // end of namespace wasim

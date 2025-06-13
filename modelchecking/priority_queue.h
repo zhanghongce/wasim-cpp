@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <queue>
 
-namespace pono {
+namespace wasim {
 
 // structure for fidx, cex
 struct fcex_t{
@@ -59,4 +59,4 @@ protected:
   std::vector<fcex_t *> store_;
 };
 
-} // pono
+} // wasim
