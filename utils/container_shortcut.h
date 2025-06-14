@@ -17,6 +17,7 @@
 #pragma once
 
 #include <algorithm>
+#include <vector>
 #include <set>
 #include <string>
 #include <unordered_set>
@@ -57,7 +58,7 @@ const typename MAP::mapped_type& get_with_default(const MAP& m,
     return it->second;
 }
 
-template<class T> bool is_union_empty(
+template<class T> bool is_intersection_empty(
     const std::unordered_set<T> & a, 
     const std::unordered_set<T> & b) {
 
@@ -69,5 +70,7 @@ template<class T> bool is_union_empty(
   }
   return true;
 }
+
+std::string Join(const std::vector<std::string> & vec, const std::string & delim);
 
 }  // namespace wasim

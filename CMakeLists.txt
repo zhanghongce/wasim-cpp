@@ -143,6 +143,9 @@ set(SOURCES
     "${PROJECT_SOURCE_DIR}/modelchecking/support.cpp"
     "${PROJECT_SOURCE_DIR}/utils/logger.cpp"
     "${PROJECT_SOURCE_DIR}/utils/subprocess.cpp"
+    "${PROJECT_SOURCE_DIR}/utils/misc.cpp"
+    "${PROJECT_SOURCE_DIR}/utils/container_shortcut.cpp"
+    "${PROJECT_SOURCE_DIR}/apps/pipe_bwd/conds.cpp"
 )
 
 
