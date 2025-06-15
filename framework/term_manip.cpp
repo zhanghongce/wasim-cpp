@@ -181,6 +181,7 @@ smt::Term ExistentialQuantifierInstantiation(const smt::Term & in, const smt::Te
   return ret;
 } // UniversalInputQuantification
 
+// It is suggested not to instantiate something too wide
 smt::Term UniversalQuantifierInstantiation(const smt::Term & in, const smt::TermVec & vars_to_quantify, smt::SmtSolver & slv) {
   if (vars_to_quantify.empty()) {
     std::cout << "[UniversalQuantifierInstantiation] nothing to quantify." << std::endl;

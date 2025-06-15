@@ -17,6 +17,7 @@
 #include "modelchecking/ic3ng.h"
 #include "modelchecking/debug.h"
 #include "utils/container_shortcut.h"
+#include "utils/misc.h"
 
 
 namespace wasim
