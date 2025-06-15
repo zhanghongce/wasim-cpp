@@ -153,6 +153,7 @@ smt::Term expr_simplify_ite(const smt::Term & expr,
 {
   std::unordered_map<Term, int> cond_set; // deduplicate (make sure we visit the same condition only once)
   std::queue<smt::Term> que;
+  smt::UnorderedTermSet visited;
   que.push(expr);
   auto T = solver->make_term(1);
   auto F = solver->make_term(0);
@@ -163,18 +164,21 @@ smt::Term expr_simplify_ite(const smt::Term & expr,
   while (que.size() != 0) {
     auto node = que.front();
     que.pop();
+    auto res = visited.emplace(node);
+    if (!res.second) // if we have visited this node before, then skip
+      continue;
+
     if (node->get_op() == smt::Ite) {
       auto childern = args(node);
       auto cond = childern.at(0);
       auto cond_set_pos = cond_set.find(cond);
       if (cond_set_pos == cond_set.end()) {
         auto reducible = is_reducible_bool(cond, assumptions, solver);
+        cond_set.emplace(cond, reducible);
         if (reducible == 0) {
-          cond_set.emplace(cond, reducible);
           subst_map[cond] = F;
           que.push(childern.at(2));
         } else if (reducible == 1) {
-          cond_set.emplace(cond, reducible);
           subst_map[cond] = T;
           que.push(childern.at(1));
         } else {
@@ -188,8 +192,11 @@ smt::Term expr_simplify_ite(const smt::Term & expr,
           que.push(childern.at(2));
         } else if (reducible == 1) {
           que.push(childern.at(1));
-        } else
-          assert(false);
+        } else { // if we know it is not reducible, check its child
+          assert(reducible == 2);
+          for (const auto & c : childern)
+            que.push(c);
+        }
       } // end if not cached in cond_set
     } else if (node->get_sort()->get_sort_kind() == SortKind::BOOL || 
             (node->get_sort()->get_sort_kind() == SortKind::BV && 
