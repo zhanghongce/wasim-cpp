@@ -8,6 +8,7 @@
 #include "frontend/btor2_encoder.h"
 #include "apps/pipe_bwd/conds.h"
 #include "modelchecking/prover.h"
+#include "utils/logger.h"
 
 
 using namespace wasim;
@@ -170,15 +171,34 @@ int main() {
   auto IfIdState = IdExState.backward({Eq(Sv("id_go"),1), Eq(Sv("rst"), 0)});
   IfIdState.print();
 
+
+  { // check eq
+    IfIdState.write_to_file("test.data.dump");
+
+    Conds IfIdRdback(sts);
+    IfIdRdback.read_from_file("test.data.dump");
+    IfIdRdback.print();
+    
+    assert(IfIdRdback.conds.size() == IfIdState.conds.size());
+    for (size_t idx = 0; idx < IfIdRdback.conds.size(); ++idx) {
+      solver->push();
+      solver->assert_formula(NOT(Eq( IfIdRdback.conds.at(idx) , IfIdState.conds.at(idx) )));
+      auto r = solver->check_sat();
+      solver->pop();
+      assert(r.is_unsat());
+    }
+  }
+
   auto rel_to_prove = IfIdState.conds.at(0);
   auto decode_condition = IfIdState.conds.at(1);
   auto prop_to_check = Imply(decode_condition, rel_to_prove);
 
   auto prover = make_prover(Engine::IC3NG_BITS, prop_to_check, sts, solver, {}, PonoOptions());
+  set_global_logger_verbosity(1);
   auto mc_result = prover->prove();
 
   std::cout << "D |-> C is " << mc_result << std::endl;
-
+  std::cout << "invar: " << prover->invar() << std::endl;
 
   // This will print 2 conditions
   //   This first one is: D:= (= #b01 ((_ extract 7 6) inst)) 

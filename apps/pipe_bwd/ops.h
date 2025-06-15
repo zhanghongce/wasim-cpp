@@ -13,6 +13,10 @@ smt::Term _Impl(const smt::Term & l, const smt::Term & r, smt::SmtSolver & s) {
   return s->make_term(smt::Implies, l, r);
 }
 
+smt::Term _Not(const smt::Term & l, smt::SmtSolver & s) {
+  return s->make_term(smt::Not, l);
+}
+
 smt::Term _Eq(const smt::Term & l, int r, smt::SmtSolver & s) {
   const auto & sort = l->get_sort();
   auto rterm = s->make_term(r, sort);
@@ -73,6 +77,7 @@ smt::Term _Read(const smt::TermVec & vec, const smt::Term & idx, smt::SmtSolver 
 
 #define Imply(l,r) (_Impl((l),(r),(solver)))
 #define Eq(l, r)   (_Eq((l),(r),(solver)))
+#define NOT(l)     (_Not((l),(solver)))
 #define Add(l, r)  (_Add((l), (r), (solver)))
 #define Read(l, r) (_Read((l), (r), (solver)))
 #define Sel(e, l, r)  (_Sel((e),(l), (r), (solver)))

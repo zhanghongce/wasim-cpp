@@ -313,7 +313,7 @@ void Conds::write_to_file(const std::string & fname) const {
     smt::UnorderedTermSet free_vars;
     smt::get_free_symbols(c, free_vars);
 
-    fout << "(define-fun cond" << cnt <<" (";
+    fout << "(define-fun cond" << cnt++ <<" (";
     std::vector<std::string> argstr;
     for (const auto & arg : free_vars)
       argstr.push_back("(" + arg->to_string() + " " + arg->get_sort()->to_string() + ")");
@@ -328,12 +328,13 @@ void Conds::read_from_file(const std::string & fname) {
     throw SimulatorException("Unable to read from " + fname);
   unsigned cnt;
   fin >> cnt;
-  for (unsigned idx = 0; idx < cnt; ++cnt) {
+  for (unsigned idx = 0; idx < cnt; ++idx) {
     std::string temp_file = "temp_sv.log";
 
     { // move next line to temp_file
       std::string linedata;
-      getline(fin, linedata);
+      while(linedata.empty())
+        getline(fin, linedata);
       std::ofstream temp(temp_file);
       if (!temp.is_open())
         throw SimulatorException("unable to open temporary file for write " + temp_file); 
