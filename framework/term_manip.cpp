@@ -127,14 +127,14 @@ unsigned term_level(const smt::Term & t) {
   return max_lvl + 1;
 }
 
-smt::Term ExistentialQuantification(const smt::Term & in, const smt::TermVec & vars_to_quantify, smt::SmtSolver & slv) {
+smt::Term ExistentialQuantifierInstantiation(const smt::Term & in, const smt::TermVec & vars_to_quantify, smt::SmtSolver & slv) {
   if (vars_to_quantify.empty()) {
-    std::cout << "[ExistentialQuantification] nothing to quantify." << std::endl;
+    std::cout << "[ExistentialQuantifierInstantiation] nothing to quantify." << std::endl;
     return in;
   }
   std::vector<int> vals;
   for(const auto & v : vars_to_quantify) {
-    std::cout << "[ExistentialQuantification] forall: " << v->to_string() << std::endl;
+    std::cout << "[ExistentialQuantifierInstantiation] forall: " << v->to_string() << std::endl;
     vals.push_back(0);
   }
   
@@ -181,14 +181,14 @@ smt::Term ExistentialQuantification(const smt::Term & in, const smt::TermVec & v
   return ret;
 } // UniversalInputQuantification
 
-smt::Term UniversalQuantification(const smt::Term & in, const smt::TermVec & vars_to_quantify, smt::SmtSolver & slv) {
+smt::Term UniversalQuantifierInstantiation(const smt::Term & in, const smt::TermVec & vars_to_quantify, smt::SmtSolver & slv) {
   if (vars_to_quantify.empty()) {
-    std::cout << "[UniversalQuantification] nothing to quantify." << std::endl;
+    std::cout << "[UniversalQuantifierInstantiation] nothing to quantify." << std::endl;
     return in;
   }
   std::vector<int> vals;
   for(const auto & v : vars_to_quantify) {
-    std::cout << "[UniversalQuantification] forall: " << v->to_string() << std::endl;
+    std::cout << "[UniversalQuantifierInstantiation] forall: " << v->to_string() << std::endl;
     vals.push_back(0);
   }
   

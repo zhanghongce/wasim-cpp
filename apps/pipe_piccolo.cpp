@@ -52,7 +52,7 @@ bool TransCheck(const Conds & c1, const TermVec & transcond, const Conds & c2, T
       auto next_a_simplified = expr_simplify_ite(next_a, asmpts_all, solver );
       auto next_inputvars = get_semantically_contained_next_input_vars(next_a_simplified, asmpts_all, sts);
       TermVec next_inputvars_vec(next_inputvars.begin(), next_inputvars.end()); // set to vec
-      auto quantified_a = UniversalQuantification(next_a_simplified, next_inputvars_vec, solver);
+      auto quantified_a = UniversalQuantifierInstantiation(next_a_simplified, next_inputvars_vec, solver);
       c2_simplifed.push_back(quantified_a);
     }
   }

@@ -38,8 +38,9 @@ smt::TermVec args(const smt::Term & term);
 
 smt::Term substitute(smt::SmtSolver & s, const smt::Term & t, const smt::UnorderedTermMap & map);
 
-smt::Term UniversalQuantification(const smt::Term & in, const smt::TermVec & vars_to_quantify, smt::SmtSolver & slv);
-smt::Term ExistentialQuantification(const smt::Term & in, const smt::TermVec & vars_to_quantify, smt::SmtSolver & slv);
+// Quantifier Instantiation
+smt::Term UniversalQuantifierInstantiation(const smt::Term & in, const smt::TermVec & vars_to_quantify, smt::SmtSolver & slv);
+smt::Term ExistentialQuantifierInstantiation(const smt::Term & in, const smt::TermVec & vars_to_quantify, smt::SmtSolver & slv);
 
 unsigned term_level(const smt::Term & t);
 

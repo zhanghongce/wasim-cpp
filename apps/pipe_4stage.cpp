@@ -138,7 +138,7 @@ bool TransCheck(const Conds & c1, const TermVec & transcond, const Conds & c2, T
       auto next_a_simplified = expr_simplify_ite(next_a, asmpts_all, solver );
       auto next_inputvars = get_semantically_contained_next_input_vars(next_a_simplified, asmpts_all, sts);
       TermVec next_inputvars_vec(next_inputvars.begin(), next_inputvars.end()); // set to vec
-      auto quantified_a = UniversalQuantification(next_a_simplified, next_inputvars_vec, solver);
+      auto quantified_a = UniversalQuantifierInstantiation(next_a_simplified, next_inputvars_vec, solver);
       c2_simplifed.push_back(quantified_a);
     }
   }
@@ -210,11 +210,11 @@ int main() {
     LastState.add( Eq(Sv("ex_wb_val"), Add(Read(registers,rs1), Read(registers, rs2)) ) );
   }
   LastState.print();
-  // LastState --> wb_ex == 0 --> LastState (get next state, simplify?)
+  // LastState --> wb_go == 0 --> LastState (get next state, simplify?)
   //  state union?
   TransCheck(LastState, { Eq(Sv("wb_go"), 0), Eq(Sv("rst"), 0)}, LastState, NULL);
 
-  // SecondLastState --> Eq(Sv("ex_go"), 1) -->  LastState
+  // IdExState --> Eq(Sv("ex_go"), 1) -->  LastState
 
   std::cout << "--------Back to id_ex_regs ---------------\n" ;
   //    The assumptions here are over the pre-state
