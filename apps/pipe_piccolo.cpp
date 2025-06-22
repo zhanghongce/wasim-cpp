@@ -2,6 +2,8 @@
 #include "config/testpath.h"
 #include "frontend/btor2_encoder.h"
 #include "apps/pipe_bwd/conds.h"
+#include "modelchecking/prover.h"
+#include "utils/logger.h"
 #include "utils/misc.h"
 
 #include <chrono>
@@ -143,12 +145,28 @@ int main() {
   TransitionSystem sts(solver);
   BTOR2Encoder btor_parser("/home/hongcez/mingkai/piccolo/piccolo.btor2", sts);
 
+  TermVec global_assumptions;
+  {
+    global_assumptions.push_back(Eq(Sv("RST_N"), 1));
+    global_assumptions.push_back(Eq(Sv("near_mem$dmem_exc"), 0));
+    global_assumptions.push_back(Eq(Sel(Sv("near_mem$imem_pc"),1,0), 0)); // near_mem$imem_pc[1:0] == 2'b00
+  }
+
   Conds LastState(sts);
   {
     auto inst = Sv("inst_reg_s3");
     auto rd = Sel( inst , 11, 7);
     auto rs1 = Sel( inst , 19, 15);
     auto rs2 = Sel( inst , 24, 20);
+    auto funct7 = Sel(inst, 31, 25);
+    auto funct3 = Sel(inst, 14, 12);
+    auto opcode = Sel(inst,  6,  0);
+
+    // ADD instruction
+    LastState.add(Eq(funct7, 0));
+    LastState.add(Eq(funct3, 0));
+    LastState.add(Eq(opcode, 0x33));
+
     LastState.add(Eq(Sv("s2_to_s3"), 1)); // 0 will fail
     LastState.add(Eq(Sv("gpr_regfile.write_rd_rd"), rd)); // 1 OK
 
@@ -159,9 +177,38 @@ int main() {
   LastState.print();
   LastState.simplify_inputvar_foreach_constraint({}); // try to simplify the inputvars
 
+  std::cout << "LastState |->  (s3_deq$EN && s3_deq$D_IN): " 
+    << LastState.check( Eq(Sv("s3_deq$EN"), 1) , global_assumptions ) 
+    << LastState.check( Eq(Sv("s3_deq$D_IN"), 1) , global_assumptions ) << "\n";
+  // use model checker to prove `s2_to_s3 |-> s3_deq$EN && s3_deq$D_IN`
+  {
+    auto p1 = Imply( Eq(Sv("s2_to_s3"), 1) , AND( Eq(Sv("s3_deq$EN"), 1), Eq(Sv("s3_deq$D_IN"), 1)));
+    
+    auto prover = make_prover(Engine::IC3NG_BITS, p1, sts, solver, {}, PonoOptions());
+    // set_global_logger_verbosity(1);
+    auto mc_result = prover->prove();
+    std::cout << "p1 is " << mc_result << std::endl;
+    global_assumptions.push_back( prover->invar() );
+  }
+  
+  std::cout << "LastState |->  (s3_deq$EN && s3_deq$D_IN): " 
+    << LastState.check( Eq(Sv("s3_deq$EN"), 1) , global_assumptions ) 
+    << LastState.check( Eq(Sv("s3_deq$D_IN"), 1) , global_assumptions ) << "\n";
+
   // the following are true, this will explain s2_to_s3 is 0
   std::cout << "c1:" << LastState.check( Eq(Sv("s2_to_s3$D_IN"), 0), {Eq(Sv("rg_retiring$EN"), 0)} ) << "\n";
   std::cout << "c2:" << LastState.check( Eq(Sv("s2_to_s3$EN"), 1), {Eq(Sv("rg_retiring$EN"), 0)} ) << "\n";
+
+  // this is tested on cadence-tool/jgtest/pico-wasim-debug
+  // question: s2_to_s3 |->  rg_retiring$EN == 1?   answer: this is false
+  //                 but why?
+  //                    if we assume `near_mem$imem_pc[1:0] == 2'b00` &&  `near_mem$dmem_exc == 0`
+  //                    does it also fail? answer is "no, it fails again"
+
+  // s2_to_s3 |-> (s3_deq$EN && s3_deq$D_IN)  : this is true
+
+  // s1_to_s2 && rg_retiring$EN |=> s2_to_s3 ?   answer: this is false
+
   return 0;
 
   // LastState --> wb_ex == 0 --> LastState (get next state, simplify?)
