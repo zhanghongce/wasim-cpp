@@ -296,18 +296,18 @@ void Conds::print() const {
   }
 }
 
-void Conds::write_to_file(const std::string & fname) const {
+void Conds::write_termvec_to_file(const std::string & fname, const smt::TermVec & tvec) {
   std::ofstream fout(fname);
   if (!fout.is_open())
     throw SimulatorException("Unable to write to " + fname);
 
-  fout << conds.size() << std::endl; // first the number of expressions
+  fout << tvec.size() << std::endl; // first the number of expressions
   size_t cnt = 0;
   // let's use cvc5, because boolector does not distinguish bool/bv1
   auto cvc_slv = smt::Cvc5SolverFactory::create(false);
   auto cvc_trans = smt::TermTranslator(cvc_slv);
 
-  for (const auto & c_orig : conds) {
+  for (const auto & c_orig : tvec) {
     auto c = bv_to_bool(cvc_trans.transfer_term(c_orig), cvc_slv);
 
     smt::UnorderedTermSet free_vars;
@@ -322,7 +322,7 @@ void Conds::write_to_file(const std::string & fname) const {
   } // end for each conds
 }
 
-void Conds::read_from_file(const std::string & fname) {
+void Conds::read_termvec_from_file(const std::string & fname, smt::TermVec & tvec, smt::SmtSolver & slv) {
   std::ifstream fin(fname);
   if (!fin.is_open())
     throw SimulatorException("Unable to read from " + fname);
@@ -341,11 +341,20 @@ void Conds::read_from_file(const std::string & fname) {
       temp << linedata << endl;
     }
 
-    auto c = load_smt_fundef(temp_file, s.get_solver());
+    auto c = load_smt_fundef(temp_file, slv);
     if (c == nullptr)
       throw SimulatorException("Failure in parsing");
-    conds.push_back(c);
+    tvec.push_back(c);
   } // for each cond
+
+}
+
+void Conds::write_to_file(const std::string & fname) const {
+  write_termvec_to_file(fname, conds);
+}
+
+void Conds::read_from_file(const std::string & fname) {
+  read_termvec_from_file(fname, conds, s.get_solver());
 }
 
 

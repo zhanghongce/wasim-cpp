@@ -29,6 +29,7 @@ using parsed_info = std::tuple<smt::UnorderedTermSet, // vars in expression
 
 static smt::Term quantify_away(const smt::Term & t, const smt::Term & var, const smt::TermVec & asmpts, smt::SmtSolver & solver) ;
 
+// get all the chains in expr that contain a var
 static void get_parent_chains_of_var(const smt::Term & expr, const smt::Term & var, std::vector<smt::TermVec> & parent_chains)
 {
   std::vector<std::tuple<smt::Term, int, bool> > stack;
@@ -79,19 +80,39 @@ static smt::Term try_simplify_strategies(const smt::Term & ret_expr, const smt::
 {
   { // strategy 1 : check if constant
     auto cnst = check_if_constant(t, asmpts, solver);
-    if (cnst) { // if it is a constant
+    if (cnst) { // if it is a constant, then replace it w. the constant
       std::cout << "[STRATEGY] tied to constant" << std::endl;
       return replacement_and_constant_propagation(ret_expr, {{t, cnst}}, solver);
     } // if it is not a constant
   } // end of strategy 1
-  { // strategy 2 : sygus simplification
+  { // strategy 2: if t is always independent of var, regardless of assumptions
+    // then t itself can be simplified
+    smt::TermVec related_asmpts;
+    bool res = get_unsatcore_for_e_is_independent_of_v(t, var, asmpts, related_asmpts);
+    assert(res);
+    if (related_asmpts.empty()) {
+      // then we can always pick an arbitrary value of var
+      smt::Term var_val_repl; // use this to replace
+      if (var->get_sort()->get_sort_kind() == smt::BOOL)
+        var_val_repl = solver->make_term(0); // make false
+      else if (var->get_sort()->get_sort_kind() == smt::BV)
+        var_val_repl = solver->make_term(0, var->get_sort());
+      else
+        throw SimulatorException("Does not handle sort: " + var->get_sort()->to_string());
+      // now replace var with var_val_repl in t
+      // NOTE: do NOT directly replace var with var_val_repl in ret_expr !!!
+      auto t_repl = replacement_and_constant_propagation(t, {{var, var_val_repl}}, solver);
+      return replacement_and_constant_propagation(ret_expr, {{t, t_repl}}, solver);
+    }
+  } // end strategy 2
+  { // strategy 3 : sygus simplification
     // then we need to invoke SyGuS rewriting
     auto simplified_term = sygus_simplify(t, var, asmpts, solver);
-    if (simplified_term) { // sygus succeeded
+    if (simplified_term) { // sygus succeeded: replace t by simplified_term in ret_expr
       return replacement_and_constant_propagation(ret_expr, {{t,simplified_term }}, solver);
     } // else: continue with other methods
-  } // end of strategy 2
-  { // strategy 3 : enumeration
+  } // end of strategy 3
+  { // strategy 4 : enumeration
     if ( (var->get_sort()->get_sort_kind() == smt::BOOL ||
         (var->get_sort()->get_sort_kind() == smt::BV &&
             var->get_sort()->get_width() <= 4  ))  // 2-bit var is also okay
@@ -106,10 +127,10 @@ static smt::Term try_simplify_strategies(const smt::Term & ret_expr, const smt::
       std::cout << "[STRATEGY] Quantified." << std::endl;
       return replacement_and_constant_propagation(ret_expr, {{t, reduced_form}}, solver);
     }
-  } // end strategy 3
+  } // end strategy 4
   // if we arrive at this place, we are running out of methods...
   // :-( Bad luck
-  throw SimulatorException("Cannot eliminate var: " + var->to_string());
+  throw SimulatorException("Run out of strategies. Cannot eliminate var: " + var->to_string());
   return nullptr;
 } // end of try_simplify_strategies
 
@@ -128,7 +149,8 @@ smt::Term remove_independent_var(
   auto modified_expr = expr_in;
   do {
     std::vector<smt::TermVec> parent_chains;
-    get_parent_chains_of_var(modified_expr, var, parent_chains);
+    get_parent_chains_of_var(modified_expr, var, parent_chains); // re-get this chain every iteration! do not re-use!
+                                                                 // because you cannot reuse
     std::cout << "[DEBUG] #. parent chains: " << parent_chains.size() << "\n";
     if (parent_chains.empty()) {
       // vars have been removed;
@@ -202,6 +224,8 @@ smt::Term remove_independent_var(
 
     // at this point, we know the term in subterm_of_this_round is reducible,
     // then we can try different strategies
+
+    // `subterm_of_this_round` is independent from `var` under `asmpts`
     modified_expr = try_simplify_strategies(modified_expr, subterm_of_this_round, var, asmpts, solver);
 
   } while(true);

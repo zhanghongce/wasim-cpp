@@ -31,6 +31,10 @@ smt::Term _And(const smt::Term & l, const smt::Term & r, smt::SmtSolver & s) {
   return s->make_term(smt::And, l, r);
 }
 
+smt::Term _Or(const smt::Term & l, const smt::Term & r, smt::SmtSolver & s) {
+  return s->make_term(smt::Or, l, r);
+}
+
 smt::Term _Add(const smt::Term & l, int r, smt::SmtSolver & s) {
   const auto & sort = l->get_sort();
   auto rterm = s->make_term(r, sort);
@@ -79,6 +83,7 @@ smt::Term _Read(const smt::TermVec & vec, const smt::Term & idx, smt::SmtSolver 
 #define Eq(l, r)   (_Eq((l),(r),(solver)))
 #define NOT(l)     (_Not((l),(solver)))
 #define AND(l,r)     (_And((l),(r),(solver)))
+#define OR(l,r)     (_Or((l),(r),(solver)))
 #define Add(l, r)  (_Add((l), (r), (solver)))
 #define Read(l, r) (_Read((l), (r), (solver)))
 #define Sel(e, l, r)  (_Sel((e),(l), (r), (solver)))

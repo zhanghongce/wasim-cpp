@@ -64,6 +64,11 @@ public:
   void write_to_file(const std::string & fname) const;
   void read_from_file(const std::string & fname);
 
+  static void write_termvec_to_file(const std::string & fname, const smt::TermVec & tvec);
+  static void read_termvec_from_file(const std::string & fname, smt::TermVec & tvec, smt::SmtSolver & slv);
+
 }; // Conditions
+
+
 
 } // namespace wasim
