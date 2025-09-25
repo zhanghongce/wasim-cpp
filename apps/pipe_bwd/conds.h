@@ -13,8 +13,8 @@ public:
   smt::TermVec conds;
   TransitionSystem & s;
   
-  // map state.nxt -> state.update_function
-  // and check `in` does not contain input.nxt
+  // map state -> state.nxt
+  // and check `in` does not contain input.nxt/state.nxt
   smt::Term safe_nxt_substitute(const smt::Term &in) const ;
 
   // constructor

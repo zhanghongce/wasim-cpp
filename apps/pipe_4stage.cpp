@@ -223,8 +223,10 @@ int main() {
   IdExState.add(Eq(Sv("id_ex_valid"), 1));
   IdExState.add(Eq(Sv("id_ex_op"), 1));
 
-  IdExState.simplify_using_mutual_asmpt(); // HZ there are input variables that you cannot avoid...
+  IdExState.simplify_using_mutual_asmpt(); // HZ: this removes input vars
   IdExState.print();
+  bool passed = IdExState.check_contains_inputvar();
+  assert(passed); // ensures no input variables
   IdExState.add(Eq(Sel(Sv("id_ex_inst"),7,6), 1));
 
   // ex_go ==0 /\ rst == 0 |-> id_go == 0
@@ -234,13 +236,14 @@ int main() {
   TermVec failed_constraints;
   // check if we start from pre-state with assumptions, are we guaranteed to end in a state satisfiying post-conditon
   TransCheck(IdExState, { Eq(Sv("ex_go"), 0), Eq(Sv("rst"), 0)}, IdExState, &failed_constraints);
-  for (const auto & a : failed_constraints) {
-    // TODO: remove the old one...
-    std::cout << "[TransCheck] Failed to comply with: " << a->to_string() << std::endl;
-    auto inputv = get_semantically_contained_next_input_vars(a, IdExState.conds, sts);
-    for (const auto & v : inputv)
-      std::cout << "Semantically depends on " << v->to_string() << std::endl;
-  }
+  assert(failed_constraints.empty());
+  // for (const auto & a : failed_constraints) {
+  //   // TODO: remove the old one...
+  //   std::cout << "[TransCheck] Failed to comply with: " << a->to_string() << std::endl;
+  //   auto inputv = get_semantically_contained_next_input_vars(a, IdExState.conds, sts);
+  //   for (const auto & v : inputv)
+  //     std::cout << "Semantically depends on " << v->to_string() << std::endl;
+  // }
 
   auto IfIdState = IdExState.backward({Eq(Sv("id_go"),1), Eq(Sv("rst"), 0)});
   IfIdState.add(Eq(Sv("if_id_valid"), 1));

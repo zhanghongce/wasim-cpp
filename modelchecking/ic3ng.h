@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <queue>
 #include <fstream>
+#include <functional>
 
 #include "modelchecking/prover.h"
 #include "smt-switch/utils.h"
@@ -46,6 +47,10 @@ namespace wasim
     typedef std::vector<Lemma *> frame_t;
     typedef std::unordered_set<smt::Term> varset_t;
     typedef std::vector<Model *> facts_t;
+
+    typedef std::function<void(std::vector<std::pair<smt::Term, smt::Term>> &, smt::SmtSolver &)> predecessor_literal_sorter_t;
+    typedef std::function<void(std::vector<smt::Term> &, smt::SmtSolver &)> clause_literal_sorter_t;
+    typedef std::function<unsigned(Model *, smt::TermVec &, smt::SmtSolver &)> predicate_inserter_t;
 
   public:
     IC3ng(const smt::Term & p, const TransitionSystem & ts,
@@ -72,6 +77,10 @@ namespace wasim
     // void virtual set_helper_term_clauses(const smt::TermVec & clauses) override;
     
     void dump_invariants(std::ostream & os) const;
+
+    void set_predecessor_literal_sorter(predecessor_literal_sorter_t f) { predecessor_literal_sorter = f; }
+    void set_clause_literal_sorter(clause_literal_sorter_t f) {clause_literal_sorter = f;}
+    void set_predicate_inserter(predicate_inserter_t f) { predicate_inserter = f;};
 
   protected:
     std::ofstream debug_fout;
@@ -154,6 +163,20 @@ namespace wasim
       std::unordered_map<smt::Term, size_t> & conjnxt_to_idx_map, smt::TermVec all_conjs_curr);
     void inductive_generalization_mic(unsigned fidx, Model *cex, LCexOrigin origin);
     
+    // the meaning of the vector is : list of (variable, constant) pair indicating: variable == constant
+    // std::function<void(std::vector<std::pair<smt::Term, smt::Term>> &, smt::SmtSolver &)> 
+    // make sure predecessor_literal_sorter will push/pop
+    predecessor_literal_sorter_t predecessor_literal_sorter;
+    // the meaning of the vector is : list of literal (which could be `(extract v)/v == 0/1` or `not/bvnot (extract v)/v`)
+    //std::function<void(std::vector<smt::Term> &, smt::SmtSolver &)>
+    // make sure clause_literal_sorter will push/pop
+    clause_literal_sorter_t clause_literal_sorter;
+    // this function extend the vector of literal that is used to block the counterexample (Model *)
+    // std::function<unsigned(Model *, smt::TermVec &, smt::SmtSolver &)>
+    // make sure predicate_inserter will push/pop
+    predicate_inserter_t predicate_inserter;
+
+
     void SortCube(std::vector<std::pair<smt::Term, smt::Term>> & inout, bool descending);
     // reduce predecessor by unsat core reduction
     void get_min_pred(

@@ -108,7 +108,10 @@ void IC3ng::get_min_pred(
     vec.push_back(std::make_pair(v, val));
   } // end for each var
   solver_->pop(); // old values are no longer needed
-  SortCube(sliced_pairs, false);
+  if (predecessor_literal_sorter == nullptr) 
+    SortCube(sliced_pairs, false);
+  else
+    predecessor_literal_sorter(sliced_pairs, solver_); // make sure predecessor_literal_sorter will push/pop
   smt::TermList slice_pair_to_reduce;
   for (const auto & v_val : sliced_pairs)
     slice_pair_to_reduce.push_back(solver_->make_term(smt::Equal, v_val.first, v_val.second));

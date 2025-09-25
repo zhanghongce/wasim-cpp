@@ -281,10 +281,15 @@ void IC3ng::inductive_generalization_mic(unsigned fidx, Model *cex, LCexOrigin o
 
 
   // TODO: sort conjs
-  SortLemma(all_conjs, options_.ic3base_sort_lemma_descending);
+  if (clause_literal_sorter == nullptr)
+    SortLemma(all_conjs, options_.ic3base_sort_lemma_descending);
+  else
+    clause_literal_sorter(all_conjs, solver_);
 
 
-  // auto npred = extend_predicates(cex, all_conjs); // IC3INN
+  unsigned npred = 0;
+  if (predicate_inserter != nullptr)
+    npred = predicate_inserter(cex, all_conjs, solver_); // IC3INN
 
 #ifdef DEBUG_IC3_INDGEN
   std::cout << "# pred: " << npred << std::endl;
